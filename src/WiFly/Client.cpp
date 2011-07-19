@@ -77,31 +77,63 @@ boolean Client::connect() {
     // TODO: Track state more?
     _WiFly.enterCommandMode();
 
-    _WiFly.sendCommand("open ", true, "" /* TODO: Remove this dummy value */);
+	_WiFly.sendCommand("set ip proto 18", false, ""); 	// sets the module to include HTTP headers, etc...
+	_WiFly.sendCommand("set com remote 0", false, "");
+
+	// configure remote port
+	_WiFly.sendCommand("set ip remote ", true, "");
+	_WiFly.uart.print(_port, DEC);
+	_WiFly.sendCommand("", false, "");
+
 
     if (_ip != NULL) {
+	  _WiFly.sendCommand("set ip address ", true, "");
       for (int index = 0; /* break inside loop*/ ; index++) {
-	_WiFly.uart.print(_ip[index], DEC);
-	if (index == 3) {
-	  break;
-	}
-	_WiFly.uart.print('.');
+	  	_WiFly.uart.print(_ip[index], DEC);
+		if (index == 3) {
+	  		break;
+		}
+		_WiFly.uart.print('.');
       }
     } else if (_domain != NULL) {
+      _WiFly.sendCommand("set dns name ", true, "");
       _WiFly.uart.print(_domain);
+      _WiFly.sendCommand("", false, "");
     } else {
       while (1) {
 	// This should never happen
       }
     }
 
-    _WiFly.uart.print(" ");
+	// now open the connection
+	_WiFly.sendCommand("open", false, "*OPEN*");
 
-    _WiFly.uart.print(_port, DEC);
-
-    _WiFly.sendCommand("", false, "Connect");
-
-    // TODO: Handle connect failure
+    // code from previous version...as of 2.26 firmware the new client calls are required....
+	//_WiFly.sendCommand("open ", true, "" /* TODO: Remove this dummy value */);
+	//
+	//    if (_ip != NULL) {
+	//      for (int index = 0; /* break inside loop*/ ; index++) {
+	//	_WiFly.uart.print(_ip[index], DEC);
+	//	if (index == 3) {
+	//	  break;
+	//	}
+	//	_WiFly.uart.print('.');
+	//      }
+	//    } else if (_domain != NULL) {
+	//      _WiFly.uart.print(_domain);
+	//    } else {
+	//      while (1) {
+	//	// This should never happen
+	//      }
+	//    }
+	//
+	//    _WiFly.uart.print(" ");
+	//
+	//    _WiFly.uart.print(_port, DEC);
+	//
+	//    _WiFly.sendCommand("", false, "*OPEN*");
+	//
+	//    // TODO: Handle connect failure
   }
 
   isOpen = true;

@@ -30,7 +30,7 @@ void setup() {
 
   if (client.connect()) {
     Serial.println("connected");
-    client.println("GET /search?q=arduino HTTP/1.0");
+    client.println("GET /search?q=arduino");
     client.println();
   } else {
     Serial.println("connection failed");
