@@ -15,7 +15,9 @@ class WiFlyDevice {
 		 boolean isWPA = true);
 
     const char * ip();
-    long getTime();
+	long getTime();
+	int getSignalStrength();
+	long getUpTime();
 
   private:
     SpiUartDevice& uart;

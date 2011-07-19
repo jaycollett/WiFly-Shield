@@ -5,7 +5,6 @@
 
 #include "Debug.h"
 
-
 boolean WiFlyDevice::findInResponse(const char *toMatch,
 				    unsigned int timeOut = 0) {
   /*
@@ -439,9 +438,102 @@ boolean WiFlyDevice::join(const char *ssid, const char *passphrase,
   return join(ssid);
 }
 
+#define UPTIME_SIZE 11 // store at least a year's uptime in seconds....
+
+long WiFlyDevice::getUpTime(){
+	/*
+		Returns the time (in seconds) since last powerup or reboot.
+	*/
+	char newChar;
+	byte offset = 0;
+
+	static char upTime[UPTIME_SIZE] = "";
+
+	enterCommandMode();
+
+	sendCommand("show time", false, "UpTime=");
+	delay(25);
+
+	while(offset < UPTIME_SIZE){
+		newChar = uart.read();
+
+		if (newChar == ' ') {
+		    upTime[offset] = '\x00';
+		    break;
+		} else if (newChar != -1) {
+		    upTime[offset] = newChar;
+		    offset++;
+    	}
+	}
+
+	// This should skip the remainder of the output.
+	// TODO: Handle this better?
+	waitForResponse("<");
+	while (uart.read() != ' ') {
+		// Skip the prompt
+	}
+
+	// For some reason the "sendCommand" approach leaves the system
+	// in a state where it misses the first/next connection so for
+	// now we don't check the response.
+	// TODO: Fix this
+	uart.println("exit");
+	//sendCommand("exit", false, "EXIT");
+
+	return atol(upTime);
+}
+
+int WiFlyDevice::getSignalStrength(){
+	/*
+		Returns the signal strength of the associated ssid, if not associated 0 will be returned.
+	*/
+	char newChar;
+
+	byte offset = 0;
+	byte valueLength = 6; // max signal is -99 to 99 but we have ( and ) to deal with, this is a safe number
+	static char signalStrenghCharArray[4] = "";
+
+	enterCommandMode();
+
+	sendCommand("show rssi", false, "RSSI=");
+	delay(25); // required to allow the module to catch up..otherwise you'll get the funny y char
+
+	//copy the signal value from the response
+	while(offset < valueLength){
+		newChar = uart.read();
+
+		if(newChar == ')'){
+			signalStrenghCharArray[offset] = '\x00';
+			break;
+		}
+
+		if(newChar != '('){
+			signalStrenghCharArray[offset] = newChar;
+			offset++;
+		}
+	}
+
+	// This should skip the remainder of the output.
+    // TODO: Handle this better?
+    waitForResponse("<");
+    while (uart.read() != ' ') {
+  	// Skip the prompt
+    }
+
+    // For some reason the "sendCommand" approach leaves the system
+    // in a state where it misses the first/next connection so for
+    // now we don't check the response.
+    // TODO: Fix this
+    uart.println("exit");
+    //sendCommand("exit", false, "EXIT");
+
+	return atoi(signalStrenghCharArray);
+}
+
+
 #define TIME_SIZE 11 // 1311006129
 
-long WiFlyDevice::getTime() {
+long WiFlyDevice::getTime(){
 
 	/*
 		Returns the time based on the NTP settings and time zone.
@@ -488,11 +580,11 @@ long WiFlyDevice::getTime() {
   return strtol(buffer, NULL, 0);
 }
 
+
 #define IP_ADDRESS_BUFFER_SIZE 16 // "255.255.255.255\0"
 
 const char * WiFlyDevice::ip() {
   /*
-
 
     The return value is intended to be dropped directly
     into calls to 'print' or 'println' style methods.
