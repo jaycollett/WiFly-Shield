@@ -76,34 +76,34 @@ boolean Client::connect() {
   } else {
     // TODO: Track state more?
     _WiFly.enterCommandMode();
-    
+
     _WiFly.sendCommand("open ", true, "" /* TODO: Remove this dummy value */);
-    
+
     if (_ip != NULL) {
       for (int index = 0; /* break inside loop*/ ; index++) {
-        _WiFly.uart.print(_ip[index], DEC);
-        if (index == 3) {
-          break;
-        }
-        _WiFly.uart.print('.');
+	_WiFly.uart.print(_ip[index], DEC);
+	if (index == 3) {
+	  break;
+	}
+	_WiFly.uart.print('.');
       }
     } else if (_domain != NULL) {
       _WiFly.uart.print(_domain);
     } else {
       while (1) {
-        // This should never happen
+	// This should never happen
       }
     }
-    
+
     _WiFly.uart.print(" ");
-    
+
     _WiFly.uart.print(_port, DEC);
-    
-    _WiFly.sendCommand("", false, "*OPEN*");
-    
+
+    _WiFly.sendCommand("", false, "Connect");
+
     // TODO: Handle connect failure
   }
-  
+
   isOpen = true;
 
   return true;
@@ -182,7 +182,7 @@ void Client::stop() {
 
   // This doesn't really work because the object gets copied in the
   // WeClient example code.
-  isOpen = false; 
+  isOpen = false;
   // _port = 0;
 
   // So instead we mark any server connection as inactive.
@@ -194,7 +194,7 @@ void Client::stop() {
 Client::operator bool() {
   /*
    */
-  // NOTE: In keeping with the Ethernet Client class
+  // NOTE: Inkeeping with the Ethernet Client class
   //       we use _ip == NULL, _domain == NULL, _port = 0 to
   //       indicate Server.available() found no connection.
   //       We use _ip == NULL, _domain == NULL, _port !=0 to

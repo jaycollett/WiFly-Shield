@@ -7,16 +7,13 @@
 
 
 boolean WiFlyDevice::findInResponse(const char *toMatch,
-                                    unsigned int timeOut = 0) {
+				    unsigned int timeOut = 0) {
   /*
 
    */
 
   // TODO: Change 'sendCommand' to use 'findInResponse' and have timeouts,
   //       and then use 'sendCommand' in routines that call 'findInResponse'?
-
-  // TODO: Don't reset timer after successful character read? Or have two
-  //       types of timeout?
 
   int byteRead;
 
@@ -70,8 +67,8 @@ boolean WiFlyDevice::findInResponse(const char *toMatch,
 
 
 boolean WiFlyDevice::responseMatched(const char *toMatch) {
-  /*
-   */
+ /*
+  */
   boolean matchFound = true;
 
   DEBUG_LOG(3, "Entered responseMatched");
@@ -287,10 +284,6 @@ boolean WiFlyDevice::sendCommand(const char *command,
                                  const char *expectedResponse = "AOK") {
   /*
    */
-  DEBUG_LOG(1, "Entered sendCommand");
-  DEBUG_LOG(2, "Command:");
-  DEBUG_LOG(2, command);
-
   uart.print(command);
 
   if (!isMultipartCommand) {
@@ -316,8 +309,8 @@ void WiFlyDevice::requireFlowControl() {
 
     Note: Any other configuration changes made since the last
           reboot will also be saved by this function so this
-          function should ideally be called immediately after a
-          reboot.
+	  function should ideally be called immediately after a
+	  reboot.
 
    */
 
@@ -380,6 +373,11 @@ void WiFlyDevice::setConfiguration() {
   // Turn off remote connect message
   sendCommand("set comm remote 0");
 
+  // Setup NTP server
+  sendCommand("set time address 64.90.182.55");
+  sendCommand("set time port 123");
+  sendCommand("set t e 60");
+
   // Turn off status messages
   // sendCommand("set sys printlvl 0");
 
@@ -402,8 +400,8 @@ boolean WiFlyDevice::join(const char *ssid) {
   //       not required? (Probably not necessary as I think module
   //       ignores them when they're not required.)
 
-  // set the SSID and configure the auto join
-  sendCommand("se wlan ssid ", true);
+  // Set the SSID and configure the auto join.
+  sendCommand("set wlan ssid ", true);
   sendCommand(ssid, false);
   sendCommand("set wlan join 1", false);
 
@@ -422,7 +420,7 @@ boolean WiFlyDevice::join(const char *ssid) {
 
 
 boolean WiFlyDevice::join(const char *ssid, const char *passphrase,
-                          boolean isWPA) {
+			  boolean isWPA) {
   /*
    */
   // TODO: Handle escaping spaces/$ in passphrase and SSID
@@ -441,6 +439,54 @@ boolean WiFlyDevice::join(const char *ssid, const char *passphrase,
   return join(ssid);
 }
 
+#define TIME_SIZE 11 // 1311006129
+
+long WiFlyDevice::getTime() {
+
+	/*
+		Returns the time based on the NTP settings and time zone.
+	*/
+
+	char newChar;
+	byte offset = 0;
+	String timeStr;
+	char buffer[TIME_SIZE];
+
+	enterCommandMode();
+
+	//sendCommand("time"); // force update if it's not already updated with NTP server
+	sendCommand("show t t", false, "RTC=");
+
+	// copy the time form the response into our buffer
+	while (offset < TIME_SIZE) {
+	    newChar = uart.read();
+
+	   if (newChar != -1) {
+	      timeStr += newChar;
+	      offset++;
+	    }
+  }
+
+  // This should skip the remainder of the output.
+  // TODO: Handle this better?
+  waitForResponse("<");
+  while (uart.read() != ' ') {
+    // Skip the prompt
+  }
+
+  // For some reason the "sendCommand" approach leaves the system
+  // in a state where it misses the first/next connection so for
+  // now we don't check the response.
+  // TODO: Fix this
+  uart.println("exit");
+  //sendCommand("exit", false, "EXIT");
+
+
+  // gotta figure out how to convert the RTC value to a unix date/time stamp.
+  timeStr.toCharArray(buffer,TIME_SIZE);
+
+  return strtol(buffer, NULL, 0);
+}
 
 #define IP_ADDRESS_BUFFER_SIZE 16 // "255.255.255.255\0"
 
@@ -499,37 +545,6 @@ const char * WiFlyDevice::ip() {
   //sendCommand("exit", false, "EXIT");
 
   return ip;
-}
-
-boolean WiFlyDevice::configure(byte option, unsigned long value) {
-  /*
-   */
-
-  // TODO: Allow options to be supplied earlier?
-
-  switch (option) {
-    case WIFLY_BAUD:
-      // TODO: Use more of standard command sending method?
-      enterCommandMode();
-      uart.print("set uart instant ");
-      uart.println(value);
-      delay(10); // If we don't have this here when we specify the
-                 // baud as a number rather than a string it seems to
-                 // fail. TODO: Find out why.
-      SpiSerial.begin(value);
-      // For some reason the following check fails if it occurs before
-      // the change of SPI UART serial rate above--even though the
-      // documentation says the AOK is returned at the old baud
-      // rate. TODO: Find out why
-      if (!findInResponse("AOK", 100)) {
-        return false;
-      }
-      break;
-    default:
-      return false;
-      break;
-  }
-  return true;
 }
 
 

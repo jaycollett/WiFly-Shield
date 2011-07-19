@@ -16,7 +16,7 @@
 #define DEBUG_LEVEL 0
 #endif
 
-#if DEBUG_LEVEL == 0
+#if DEBUG_LEVEL == 4
 
 #define DEBUG_LOG(level, message)
 
