@@ -77,8 +77,11 @@ boolean Client::connect() {
     // TODO: Track state more?
     _WiFly.enterCommandMode();
 
-	_WiFly.sendCommand("set ip proto 18", false, ""); 	// sets the module to include HTTP headers, etc...
-	_WiFly.sendCommand("set com remote 0", false, "");
+	// we should probably put these commands in better location, no need to call them each time a connection is made really...
+	_WiFly.sendCommand("set ip proto 18", false, ""); 		// sets the module to include HTTP headers, etc...
+	_WiFly.sendCommand("set com remote 0", false, "");  	// removes any remote echo
+	_WiFly.sendCommand("set comm size 1460", false, "");	// sets the comm buffer size to it's max of 1460, that's the max lenght of the queystring
+	_WiFly.sendCommand("set comm time 2000", false, "");	// we also want to increase the uart wait time before sending the IP packet...2 seconds should do
 
 	// configure remote port
 	_WiFly.sendCommand("set ip remote ", true, "");
@@ -87,7 +90,7 @@ boolean Client::connect() {
 
 
     if (_ip != NULL) {
-	  _WiFly.sendCommand("set ip address ", true, "");
+	  _WiFly.sendCommand("set ip host ", true, "");
       for (int index = 0; /* break inside loop*/ ; index++) {
 	  	_WiFly.uart.print(_ip[index], DEC);
 		if (index == 3) {
